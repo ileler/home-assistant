@@ -4,7 +4,6 @@ Interfaces with Egardia/Woonveilig alarm control panel.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/alarm_control_panel.egardia/
 """
-import asyncio
 import logging
 
 import requests
@@ -12,13 +11,14 @@ import requests
 import homeassistant.components.alarm_control_panel as alarm
 from homeassistant.const import (
     STATE_ALARM_DISARMED, STATE_ALARM_ARMED_HOME,
-    STATE_ALARM_ARMED_AWAY, STATE_ALARM_TRIGGERED)
+    STATE_ALARM_ARMED_AWAY, STATE_ALARM_TRIGGERED,
+    STATE_ALARM_ARMED_NIGHT)
 from homeassistant.components.egardia import (
     EGARDIA_DEVICE, EGARDIA_SERVER,
     REPORT_SERVER_CODES_IGNORE, CONF_REPORT_SERVER_CODES,
     CONF_REPORT_SERVER_ENABLED, CONF_REPORT_SERVER_PORT
     )
-REQUIREMENTS = ['pythonegardia==1.0.38']
+DEPENDENCIES = ['egardia']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,11 +27,13 @@ STATES = {
     'DAY HOME': STATE_ALARM_ARMED_HOME,
     'DISARM': STATE_ALARM_DISARMED,
     'ARMHOME': STATE_ALARM_ARMED_HOME,
+    'HOME': STATE_ALARM_ARMED_HOME,
+    'NIGHT HOME': STATE_ALARM_ARMED_NIGHT,
     'TRIGGERED': STATE_ALARM_TRIGGERED
 }
 
 
-def setup_platform(hass, config, add_devices, discovery_info=None):
+def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the Egardia platform."""
     if discovery_info is None:
         return
@@ -42,7 +44,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         discovery_info.get(CONF_REPORT_SERVER_CODES),
         discovery_info[CONF_REPORT_SERVER_PORT])
     # add egardia alarm device
-    add_devices([device], True)
+    add_entities([device], True)
 
 
 class EgardiaAlarm(alarm.AlarmControlPanel):
@@ -58,8 +60,7 @@ class EgardiaAlarm(alarm.AlarmControlPanel):
         self._rs_codes = rs_codes
         self._rs_port = rs_port
 
-    @asyncio.coroutine
-    def async_added_to_hass(self):
+    async def async_added_to_hass(self):
         """Add Egardiaserver callback if enabled."""
         if self._rs_enabled:
             _LOGGER.debug("Registering callback to Egardiaserver")

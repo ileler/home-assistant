@@ -11,6 +11,7 @@ from homeassistant.components.light.demo import DemoLight
 
 BASIC_CONFIG = helpers.Config(
     should_expose=lambda state: True,
+    allow_unlock=False,
     agent_user_id='test-agent',
 )
 REQ_ID = 'ff36a3cc-ec34-11e6-b1a0-64510650abcf'
@@ -21,7 +22,7 @@ async def test_sync_message(hass):
     light = DemoLight(
         None, 'Demo Light',
         state=False,
-        rgb=[237, 224, 33]
+        hs_color=(180, 75),
     )
     light.hass = hass
     light.entity_id = 'light.demo_light'
@@ -35,6 +36,7 @@ async def test_sync_message(hass):
 
     config = helpers.Config(
         should_expose=lambda state: state.entity_id != 'light.not_expose',
+        allow_unlock=False,
         agent_user_id='test-agent',
         entity_config={
             'light.demo_light': {
@@ -74,8 +76,8 @@ async def test_sync_message(hass):
                 'willReportState': False,
                 'attributes': {
                     'colorModel': 'rgb',
-                    'temperatureMinK': 6493,
-                    'temperatureMaxK': 2000,
+                    'temperatureMinK': 2000,
+                    'temperatureMaxK': 6535,
                 },
                 'roomHint': 'Living Room'
             }]
@@ -88,7 +90,7 @@ async def test_query_message(hass):
     light = DemoLight(
         None, 'Demo Light',
         state=False,
-        rgb=[237, 224, 33]
+        hs_color=(180, 75),
     )
     light.hass = hass
     light.entity_id = 'light.demo_light'
@@ -97,7 +99,7 @@ async def test_query_message(hass):
     light2 = DemoLight(
         None, 'Another Light',
         state=True,
-        rgb=[237, 224, 33],
+        hs_color=(180, 75),
         ct=400,
         brightness=78,
     )
@@ -137,7 +139,7 @@ async def test_query_message(hass):
                     'online': True,
                     'brightness': 30,
                     'color': {
-                        'spectrumRGB': 15589409,
+                        'spectrumRGB': 4194303,
                         'temperature': 2500,
                     }
                 },
@@ -197,7 +199,7 @@ async def test_execute(hass):
                     "online": True,
                     'brightness': 20,
                     'color': {
-                        'spectrumRGB': 15589409,
+                        'spectrumRGB': 16773155,
                         'temperature': 2631,
                     },
                 }
@@ -270,6 +272,32 @@ async def test_unavailable_state_doesnt_sync(hass):
     light.hass = hass
     light.entity_id = 'light.demo_light'
     light._available = False
+    await light.async_update_ha_state()
+
+    result = await sh.async_handle_message(hass, BASIC_CONFIG, {
+        "requestId": REQ_ID,
+        "inputs": [{
+            "intent": "action.devices.SYNC"
+        }]
+    })
+
+    assert result == {
+        'requestId': REQ_ID,
+        'payload': {
+            'agentUserId': 'test-agent',
+            'devices': []
+        }
+    }
+
+
+async def test_empty_name_doesnt_sync(hass):
+    """Test that an entity with empty name does not sync over."""
+    light = DemoLight(
+        None, ' ',
+        state=False,
+    )
+    light.hass = hass
+    light.entity_id = 'light.demo_light'
     await light.async_update_ha_state()
 
     result = await sh.async_handle_message(hass, BASIC_CONFIG, {

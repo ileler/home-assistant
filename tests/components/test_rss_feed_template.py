@@ -8,8 +8,8 @@ from homeassistant.setup import async_setup_component
 
 
 @pytest.fixture
-def mock_http_client(loop, hass, test_client):
-    """Setup test fixture."""
+def mock_http_client(loop, hass, hass_client):
+    """Set up test fixture."""
     config = {
         'rss_feed_template': {
             'testfeed': {
@@ -21,7 +21,7 @@ def mock_http_client(loop, hass, test_client):
     loop.run_until_complete(async_setup_component(hass,
                                                   'rss_feed_template',
                                                   config))
-    return loop.run_until_complete(test_client(hass.http.app))
+    return loop.run_until_complete(hass_client())
 
 
 @asyncio.coroutine
